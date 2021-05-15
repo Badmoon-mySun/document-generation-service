@@ -1,0 +1,5 @@
+POST http://localhost:8080/document/generate/
+
+###
+
+GET http://localhost:8080/document
