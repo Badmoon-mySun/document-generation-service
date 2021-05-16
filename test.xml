@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <reports>
+        <element>
+            <accordingTo>
+                <element>00012</element>
+                <element>00012</element>
+                <element>00012</element>
+            </accordingTo>
+            <conferenceTime>15:01:24 16.05.2021</conferenceTime>
+            <id>35</id>
+            <institute>
+                <inn>5038093740</inn>
+                <name>ИТИС</name>
+            </institute>
+            <login>Login</login>
+            <note>какое-то присечание</note>
+            <participants>
+                <element>
+                    <comment>Какой-то комментарий</comment>
+                    <decorated>15:01:24 16.05.2021</decorated>
+                    <enrolled>15:01:24 16.05.2021</enrolled>
+                    <formed>15:01:24 16.05.2021</formed>
+                    <ipAddress>192.168.0.1</ipAddress>
+                    <name>Хасанов Анвар Рустамович</name>
+                    <position>студент второго куррса ИТИС КФУ</position>
+                </element>
+            </participants>
+            <studentsCount>65</studentsCount>
+            <type>TT</type>
+        </element>
+    </reports>
+</root>
