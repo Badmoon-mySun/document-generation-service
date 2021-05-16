@@ -21,12 +21,14 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @AllArgsConstructor
-@Component
 public class PdfPageEnumerationEventHandler implements IEventHandler {
     private int startPageNumber;
+    private int lastPage;
+
 
     public PdfPageEnumerationEventHandler() {
         this.startPageNumber = 0;
+        this.lastPage = 0;
     }
 
     @Override
@@ -35,7 +37,8 @@ public class PdfPageEnumerationEventHandler implements IEventHandler {
         PdfDocument pdf = docEvent.getDocument();
 
         PdfPage page = docEvent.getPage();
-        int pageNumber = pdf.getPageNumber(page) - this.startPageNumber;
+        this.lastPage = pdf.getPageNumber(page);
+        int pageNumber = this.lastPage - this.startPageNumber;
 
         Rectangle pageSize = page.getPageSize();
         PdfCanvas pdfCanvas = new PdfCanvas(
@@ -48,5 +51,9 @@ public class PdfPageEnumerationEventHandler implements IEventHandler {
 
         canvas.showTextAligned(p, 580, 13, TextAlignment.RIGHT);
         pdfCanvas.release();
+    }
+
+    public void startNewEnumeration() {
+        this.startPageNumber = this.lastPage;
     }
 }

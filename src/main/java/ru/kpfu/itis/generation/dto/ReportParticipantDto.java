@@ -6,11 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
-import java.util.List;
 
 /**
  * @author Anvar Khasanov
@@ -21,33 +19,29 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConferencesReportDto {
-    @NotNull
-    private List<String> accordingTo;
-
-    @NotNull
-    private Long id;
-
-    @NotBlank
-    private String type;
-
-    @NotBlank
-    private String login;
-
-    @Valid
-    @NotNull
-    private ReportInstituteDto institute;
-
-    @NotNull
-    private Integer studentsCount;
+public class ReportParticipantDto {
 
     @NotNull
     @JsonFormat(pattern="HH:mm:ss dd.MM.yyyy")
-    private Date conferenceTime;
+    private Date formed;
 
-    @Valid
     @NotNull
-    private List<ReportParticipantDto> participants;
+    @JsonFormat(pattern="HH:mm:ss dd.MM.yyyy")
+    private Date decorated;
 
-    private String note;
+    @NotNull
+    @JsonFormat(pattern="HH:mm:ss dd.MM.yyyy")
+    private Date enrolled;
+
+    @NotBlank
+    private String comment;
+
+    @NotBlank
+    private String name;
+
+    @NotBlank
+    private String position;
+
+    @NotBlank
+    private String ipAddress;
 }

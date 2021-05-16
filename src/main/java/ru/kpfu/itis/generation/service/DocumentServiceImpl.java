@@ -13,14 +13,16 @@ import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.font.FontProvider;
 import com.itextpdf.layout.font.FontSet;
 import com.itextpdf.layout.property.*;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import ru.kpfu.itis.generation.dto.ConferencesReportDto;
 import ru.kpfu.itis.generation.utils.PdfPageEnumerationEventHandler;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
-import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -28,21 +30,24 @@ import java.util.stream.Stream;
  * student of ITIS KFU
  * group 11-905
  */
+@Service
 public class DocumentServiceImpl implements DocumentService {
-    private static String imageDocumentLogoPath = "/home/badmoon/dev/document-generation-service/src/main/resources/static/img/kpfu-logo.png";
 
+    public void generateReport(List<ConferencesReportDto> reportDtoList, OutputStream outputStream) {
+        PdfPageEnumerationEventHandler enumerationEventHandler = new PdfPageEnumerationEventHandler();
 
-    public static void generateReport() {
-        try {
-            // Creating a PdfWriter
-            String dest = "/home/badmoon/dev/document-generation-service/src/main/resources/static/img/rotatingImage.pdf";
-            FileOutputStream fileOutputStream = new FileOutputStream(dest);
+        // Создаем документ
+        Document document = setUpPdfDocument(outputStream, enumerationEventHandler);
 
-            Document document = setUpPdfDocument(fileOutputStream);
-
-
+        // Проходим по всем отчетам
+        reportDtoList.forEach(reportDto -> {
             // Создаем объект Image
-            Image logo = new Image(ImageDataFactory.create(imageDocumentLogoPath));
+            Image logo;
+            try {
+                logo = new Image(ImageDataFactory.create("classpath:/static/img/kpfu-logo.png"));
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException(e);
+            }
 
             // Указываем размеры и расположение
             logo.setFixedPosition(10, 750);
@@ -55,16 +60,15 @@ public class DocumentServiceImpl implements DocumentService {
             Div documentHeader = new Div();
             documentHeader.setMinHeight(90);
 
-
             // Создаем параграф для блока
             Paragraph headerParagraph = new Paragraph("Подготовленный отчет по данным по № ");
             // Создаем текст с жирным шрифтом
-            Text num = new Text("10323010/250920/0007140");
+            Text num = new Text(String.join("/", reportDto.getAccordingTo()));
             setTextBold(num);
             headerParagraph.add(num);
 
             // Задаем размеры и расположение текста параграфа
-            headerParagraph.setWidth(170);
+            headerParagraph.setWidth(195);
             headerParagraph.setHorizontalAlignment(HorizontalAlignment.RIGHT);
             headerParagraph.setTextAlignment(TextAlignment.LEFT);
 
@@ -73,11 +77,13 @@ public class DocumentServiceImpl implements DocumentService {
             document.add(documentHeader);
 
             // Добавляем в документ информацию о отчете
-            setReportInfo(document);
+            setReportInfo(document, reportDto);
 
             // Добавляем в документ обзац с участниками конференции
             Paragraph participantsParagraph = new Paragraph("Перечень участников конференции ");
-            participantsParagraph.add((new Date(System.currentTimeMillis())).toString());
+            DateFormat participantsDateFormat = new SimpleDateFormat("HH:mm:ss dd.MM.yyyy");
+            participantsParagraph.add(participantsDateFormat.format(reportDto.getConferenceTime()));
+            participantsParagraph.add(":");
             participantsParagraph.setMarginTop(15);
 
             document.add(participantsParagraph);
@@ -89,68 +95,77 @@ public class DocumentServiceImpl implements DocumentService {
             // Добавляем шапку таблицы
             addTableHeader(participantsTable);
             // Заполняем таблицу данными
-            addRowsTable(participantsTable);
+            addRowsTable(participantsTable, reportDto);
 
             // Добавляем таблицу в документ
             document.add(participantsTable);
 
-            // Добавляем примечание в документ
-            Paragraph noteParagraph = new Paragraph("Примечание: ");
-            noteParagraph.add("время указано в часовом поясе MSK (UTC+3) в соответствии с системными часами сервера или АРМ.");
-            noteParagraph.setFontSize(10);
-            document.add(noteParagraph);
+            // Если есть, то добавляем примечание
+            if (StringUtils.hasText(reportDto.getNote())) {
+                Paragraph noteParagraph = new Paragraph("Примечание: ");
+                noteParagraph.add(reportDto.getNote());
+                document.add(noteParagraph);
+            }
 
-            // Закрываем документ
-            document.close();
-        } catch (FileNotFoundException | MalformedURLException e) {
-            e.printStackTrace();
-        }
+            // Начать нумерацию заново
+            enumerationEventHandler.startNewEnumeration();
+
+            // Добавляем следующую страницу если это не последнй элемент
+            System.out.println(reportDtoList.indexOf(reportDto));
+            if (reportDtoList.indexOf(reportDto) != reportDtoList.size() - 1) {
+                document.add(new AreaBreak(AreaBreakType.NEXT_PAGE));
+            }
+        });
+
+        // Закрываем документ
+        document.close();
     }
 
 
-    public static Document setUpPdfDocument(OutputStream outputStream) {
+    public Document setUpPdfDocument(OutputStream outputStream,
+                                     PdfPageEnumerationEventHandler enumerationEventHandler) {
         PdfWriter writer = new PdfWriter(outputStream);
 
         // Создаем pdf документ
         PdfDocument pdfDoc = new PdfDocument(writer);
-        PdfPageEnumerationEventHandler headerHandler = new PdfPageEnumerationEventHandler();
 
         // Добавляем событие для нумерации страниц
-        pdfDoc.addEventHandler(PdfDocumentEvent.START_PAGE, headerHandler);
+        pdfDoc.addEventHandler(PdfDocumentEvent.START_PAGE, enumerationEventHandler);
 
         // Создаем окумент
         Document document = new Document(pdfDoc);
 
         // Создаем и добавляем шрифт в документ для поддержки русской кирилицы
-        FontSet fontSet  = new FontSet();
-        fontSet.addFont("/home/badmoon/dev/document-generation-service/src/main/resources/static/font/Roboto/Roboto-Regular.ttf");
+        FontSet fontSet = new FontSet();
+        fontSet.addFont("static/font/Roboto/Roboto-Regular.ttf");
         document.setFontProvider(new FontProvider(fontSet));
         document.setProperty(Property.FONT, new String[]{"Roboto"});
         document.setFontSize(10);
 
         // Указываем отступы документа по умолчанию
-        document.setMargins(20, 15, 20,15);
+        document.setMargins(20, 15, 20, 15);
 
         return document;
     }
 
-    private static void setReportInfo(Document document) {
+    // Создаем таблицу и добавляем поля
+    private void setReportInfo(Document document, ConferencesReportDto reportDto) {
         Table table = new Table(2);
 
         table.addCell(getCellWithOutBorder().add(new Paragraph("Институт:")));
-        table.addCell(getCellWithOutBorder().add(new Paragraph("ИТИС (ИНН: 5038093740)")));
+        table.addCell(getCellWithOutBorder().add(new Paragraph(reportDto.getInstitute().toString())));
 
         table.addCell(getCellWithOutBorder().add(new Paragraph("Логин:")));
-        table.addCell(getCellWithOutBorder().add(new Paragraph("Login")));
+        table.addCell(getCellWithOutBorder().add(new Paragraph(reportDto.getLogin())));
 
         table.addCell(getCellWithOutBorder().add(new Paragraph("Количество студентов:")));
-        table.addCell(getCellWithOutBorder().add(new Paragraph("65")));
+        table.addCell(getCellWithOutBorder().add(new Paragraph(String.valueOf(reportDto.getStudentsCount()))));
 
         table.addCell(getCellWithOutBorder().add(new Paragraph("Номер отчёта:")));
-        table.addCell(getCellWithOutBorder().add(new Paragraph("32223")));
+        table.addCell(getCellWithOutBorder().add(new Paragraph(String.valueOf(reportDto.getId()))));
 
         table.addCell(getCellWithOutBorder().add(new Paragraph("Тип отчёта:")));
-        table.addCell(getCellWithOutBorder().add(new Paragraph("ТТ")));
+        table.addCell(getCellWithOutBorder().add(new Paragraph(reportDto.getType())));
 
         document.add(table);
     }
@@ -159,46 +174,52 @@ public class DocumentServiceImpl implements DocumentService {
         return new Cell().setBorder(Border.NO_BORDER);
     }
 
+    // Добавляем в таблицу шапку
     private static void addTableHeader(Table table) {
         Stream.of("Сформирован", "Оформлен", "Зачислил", "Комментарий", "ФИО, Должность", "IP-адрес")
                 .forEach(columnTitle -> {
-                    Cell header = getFormatTableCell();
-                    header.setHeight(30);
-
                     Text text = new Text(columnTitle);
                     text.setFontSize(9);
                     setTextBold(text);
 
-                    header.add(new Paragraph(text));
+                    Cell header = getFormatTableCell(text);
+                    header.setHeight(30);
+
                     table.addHeaderCell(header);
                 });
     }
 
-    private static void addRowsTable(Table table) {
-        for (int i = 0; i < 30; i++) {
-            table.addCell(getFormatTableCell().add(new Paragraph("25-09-2020 13:46:25").setFontSize(8)));
-            table.addCell(getFormatTableCell().add(new Paragraph("25-09-2020 13:46:26").setFontSize(8)));
-            table.addCell(getFormatTableCell().add(new Paragraph("25-09-2020 13:46:41").setFontSize(8)));
-            table.addCell(getFormatTableCell().add(new Paragraph("Какой-нибудь текст, Какой-нибудь длинный, а может быть не очень длинный текст, главное чтобы верстка не полетела Версия").setFontSize(8)));
-            Cell cell = getFormatTableCell();
-            cell.add(new Paragraph("Иванов Иван Иванович").setFontSize(8));
-            cell.add(new Paragraph("Иванов Иван Иванович").setFontSize(8));
-            cell.add(new Paragraph("Иванов Иван Иванович").setFontSize(8));
-            cell.add(new Paragraph("Иванов Иван Иванович").setFontSize(8));
-            table.addCell(cell);
+    // Добавляем в Таблицу строки
+    private static void addRowsTable(Table table, ConferencesReportDto reportDto) {
+        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
-            table.addCell(getFormatTableCell().add(new Paragraph("192.168.0.15").setFontSize(8)));
-        }
+        reportDto.getParticipants().forEach(participant -> {
+            table.addCell(getFormatTableCell(new Text(dateFormat.format(participant.getFormed())).setFontSize(8)));
+            table.addCell(getFormatTableCell(new Text(dateFormat.format(participant.getDecorated())).setFontSize(8)));
+            table.addCell(getFormatTableCell(new Text(dateFormat.format(participant.getEnrolled())).setFontSize(8)));
+
+            table.addCell(getFormatTableCell(new Text(participant.getComment()).setFontSize(8)));
+
+            String nameAndPosition = participant.getName() + "\n" + participant.getPosition();
+            table.addCell(getFormatTableCell(new Text(nameAndPosition).setFontSize(8)));
+
+            table.addCell(getFormatTableCell(new Text(participant.getIpAddress()).setFontSize(8)));
+        });
     }
 
-    private static Cell getFormatTableCell() {
+    // Возвращает отформатированную ячейку таблицы
+    private static Cell getFormatTableCell(Text text) {
         Cell cell = new Cell().setTextAlignment(TextAlignment.CENTER)
-                            .setVerticalAlignment(VerticalAlignment.MIDDLE);
+                .setVerticalAlignment(VerticalAlignment.MIDDLE);
         Border border = new SolidBorder(.8f);
         cell.setBorder(border);
+
+        cell.add(new Paragraph(text));
+
         return cell;
     }
 
+    // Устанавливает жирный текст
     private static void setTextBold(Text text) {
         text.setStrokeWidth(0.2f)
                 .setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE)

@@ -1,4 +1,36 @@
-POST http://localhost:8080/document/generate/
+GET http://localhost:8080/document/generate/
+Content-Type: application/json
+
+{
+  "reports": [
+    {
+      "id": 35,
+      "type": "TT",
+      "login": "Login",
+      "studentsCount": 65,
+      "conferenceTime": "15:01:24 16.05.2021",
+      "note": "какое-то присечание",
+      "accordingTo": [
+        "00012", "00012", "00012"
+      ],
+      "institute": {
+        "name": "ИТИС",
+        "inn": 5038093740
+      },
+      "participants": [
+        {
+          "formed": "15:01:24 16.05.2021",
+          "decorated": "15:01:24 16.05.2021",
+          "enrolled": "15:01:24 16.05.2021",
+          "comment": "Какой-то комментарий",
+          "name": "Хасанов Анвар Рустамович",
+          "position": "студент второго куррса ИТИС КФУ",
+          "ipAddress": "192.168.0.1"
+        }
+      ]
+    }
+  ]
+}
 
 ###
 
