@@ -111,7 +111,6 @@ public class DocumentServiceImpl implements DocumentService {
             enumerationEventHandler.startNewEnumeration();
 
             // Добавляем следующую страницу если это не последнй элемент
-            System.out.println(reportDtoList.indexOf(reportDto));
             if (reportDtoList.indexOf(reportDto) != reportDtoList.size() - 1) {
                 document.add(new AreaBreak(AreaBreakType.NEXT_PAGE));
             }
